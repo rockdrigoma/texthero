@@ -17,6 +17,8 @@ from texthero._types import TokenSeries, TextSeries, InputSeries
 
 from typing import List, Callable, Union
 
+import emoji
+
 # Ignore gensim annoying warnings
 import warnings
 
@@ -372,6 +374,92 @@ def remove_stopwords(
     return replace_stopwords(s, symbol="", stopwords=stopwords)
 
 
+def _replace_emojis(text: str) -> str:
+    """
+    Replace emojis in a string, replacing them with a placeholder.
+
+    Parameters
+    ----------
+    text: str
+
+    Examples
+    --------
+    >>> from texthero.preprocessing import _replace_emojis
+    >>> s = "the book of the jungle 😈"
+    >>> _replace_emojis(s)
+    'the book of the jungle :smiling_face_with_horns:'
+
+    """
+
+    return emoji.demojize(text)
+
+
+@InputSeries(TextSeries)
+def replace_emojis(s: TextSeries) -> TextSeries:
+    """
+    Replace emojis in a string, replacing them with a placeholder.
+
+    Parameters
+    ----------
+    s : :class:`texthero._types.TextSeries`
+
+    Examples
+    --------
+    >>> import texthero as hero
+    >>> import pandas as pd
+    >>> s = pd.Series("the book of the jungle 😈")
+    >>> hero.replace_emojis(s)
+    0    the book of the jungle :smiling_face_with_horns:
+    dtype: object
+
+    """
+
+    return s.apply(_replace_emojis)
+
+
+def _place_emojis(text: str) -> str:
+    """
+    Place back emojis in a string, replacing placeholders with emojis.
+
+    Parameters
+    ----------
+    text: str
+
+    Examples
+    --------
+    >>> from texthero.preprocessing import _replace_emojis
+    >>> s = "the book of the jungle :smiling_face_with_horns:"
+    >>> _place_emojis(s)
+    'the book of the jungle 😈'
+
+    """
+
+    return emoji.emojize(text)
+
+
+@InputSeries(TextSeries)
+def place_emojis(s: TextSeries) -> TextSeries:
+    """
+    Place back emojis in a string, replacing placeholders with emojis.
+
+    Parameters
+    ----------
+    s : :class:`texthero._types.TextSeries`
+
+    Examples
+    --------
+    >>> import texthero as hero
+    >>> import pandas as pd
+    >>> s = pd.Series("the book of the jungle :smiling_face_with_horns:")
+    >>> hero.place_emojis(s)
+    0    the book of the jungle 😈
+    dtype: object
+
+    """
+
+    return s.apply(_place_emojis)
+
+
 def get_default_pipeline() -> List[Callable[[pd.Series], pd.Series]]:
     """
     Return a list contaning all the methods used in the default cleaning
@@ -394,6 +482,27 @@ def get_default_pipeline() -> List[Callable[[pd.Series], pd.Series]]:
         remove_diacritics,
         remove_stopwords,
         remove_whitespace,
+    ]
+
+def get_twitter_pipeline() -> List[Callable[[pd.Series], pd.Series]]:
+    """
+    Return a list contaning all the methods used in the default cleaning
+    pipeline.
+
+    Return a list with the following functions:
+     1. :meth:`texthero.preprocessing.fillna`
+     2. :meth:`texthero.preprocessing.lowercase`
+     3. :meth:`texthero.preprocessing.remove_digits`
+     4. :meth:`texthero.preprocessing.remove_punctuation`
+     5. :meth:`texthero.preprocessing.remove_diacritics`
+     6. :meth:`texthero.preprocessing.remove_stopwords`
+     7. :meth:`texthero.preprocessing.remove_whitespace`
+    """
+    return [
+        fillna,
+        replace_emojis,
+        replace_hashtags,
+        replace_urls
     ]
 
 
@@ -432,6 +541,48 @@ def clean(s: TextSeries, pipeline=None) -> TextSeries:
     >>> s = pd.Series("Uper 9dig.        he her ÄÖÜ")
     >>> hero.clean(s)
     0    uper 9dig aou
+    dtype: object
+    """
+
+    if not pipeline:
+        pipeline = get_default_pipeline()
+
+    for f in pipeline:
+        s = s.pipe(f)
+    return s
+
+
+@InputSeries(TextSeries)
+def clean_tweets(s: TextSeries, pipeline=get_twitter_pipeline()) -> TextSeries:
+    """
+    Pre-process a text-based Pandas Series of tweets, by using the following
+    pipeline.
+
+     Twitter pipeline:
+     1. :meth:`texthero.preprocessing.fillna`
+     2. :meth:`texthero.preprocessing.replace_emojis`
+     3. :meth:`texthero.preprocessing.replace_urls`
+
+    Parameters
+    ----------
+    s : :class:`texthero._types.TextSeries`
+
+    pipeline : List[Callable[Pandas Series, Pandas Series]],
+               optional, default=None
+       Specific pipeline to clean the texts. Has to be a list
+       of functions taking as input and returning as output
+       a Pandas Series. If None, the default pipeline
+       is used.
+   
+    Examples
+    --------
+    For the default pipeline:
+
+    >>> import texthero as hero
+    >>> import pandas as pd
+    >>> s = pd.Series("the book of the jungle 😈 https://example.com")
+    >>> hero.clean_tweets(s)
+    0    the book of the jungle :smiling_face_with_horns: <URL>
     dtype: object
     """
 
@@ -772,6 +923,8 @@ def replace_urls(s: TextSeries, symbol: str) -> TextSeries:
     :meth:`texthero.preprocessing.remove_urls`
 
     """
+    if symbol is None:
+        symbol = "<URL>"
 
     pattern = r"http\S+"
 
@@ -880,6 +1033,9 @@ def replace_hashtags(s: TextSeries, symbol: str) -> TextSeries:
     dtype: object
 
     """
+    if symbol is None:
+        symbol = "<HASHTAG>"
+
     pattern = r"#[a-zA-Z0-9_]+"
     return s.str.replace(pattern, symbol)
 
