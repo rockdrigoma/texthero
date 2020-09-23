@@ -484,27 +484,6 @@ def get_default_pipeline() -> List[Callable[[pd.Series], pd.Series]]:
         remove_whitespace,
     ]
 
-def get_twitter_pipeline() -> List[Callable[[pd.Series], pd.Series]]:
-    """
-    Return a list contaning all the methods used in the default cleaning
-    pipeline.
-
-    Return a list with the following functions:
-     1. :meth:`texthero.preprocessing.fillna`
-     2. :meth:`texthero.preprocessing.lowercase`
-     3. :meth:`texthero.preprocessing.remove_digits`
-     4. :meth:`texthero.preprocessing.remove_punctuation`
-     5. :meth:`texthero.preprocessing.remove_diacritics`
-     6. :meth:`texthero.preprocessing.remove_stopwords`
-     7. :meth:`texthero.preprocessing.remove_whitespace`
-    """
-    return [
-        fillna,
-        replace_emojis,
-        replace_hashtags,
-        replace_urls
-    ]
-
 
 @InputSeries(TextSeries)
 def clean(s: TextSeries, pipeline=None) -> TextSeries:
@@ -541,48 +520,6 @@ def clean(s: TextSeries, pipeline=None) -> TextSeries:
     >>> s = pd.Series("Uper 9dig.        he her ÄÖÜ")
     >>> hero.clean(s)
     0    uper 9dig aou
-    dtype: object
-    """
-
-    if not pipeline:
-        pipeline = get_default_pipeline()
-
-    for f in pipeline:
-        s = s.pipe(f)
-    return s
-
-
-@InputSeries(TextSeries)
-def clean_tweets(s: TextSeries, pipeline=get_twitter_pipeline()) -> TextSeries:
-    """
-    Pre-process a text-based Pandas Series of tweets, by using the following
-    pipeline.
-
-     Twitter pipeline:
-     1. :meth:`texthero.preprocessing.fillna`
-     2. :meth:`texthero.preprocessing.replace_emojis`
-     3. :meth:`texthero.preprocessing.replace_urls`
-
-    Parameters
-    ----------
-    s : :class:`texthero._types.TextSeries`
-
-    pipeline : List[Callable[Pandas Series, Pandas Series]],
-               optional, default=None
-       Specific pipeline to clean the texts. Has to be a list
-       of functions taking as input and returning as output
-       a Pandas Series. If None, the default pipeline
-       is used.
-   
-    Examples
-    --------
-    For the default pipeline:
-
-    >>> import texthero as hero
-    >>> import pandas as pd
-    >>> s = pd.Series("the book of the jungle 😈 https://example.com")
-    >>> hero.clean_tweets(s)
-    0    the book of the jungle :smiling_face_with_horns: <URL>
     dtype: object
     """
 
@@ -1062,3 +999,67 @@ def remove_hashtags(s: TextSeries) -> TextSeries:
         with a custom symbol.
     """
     return replace_hashtags(s, " ")
+
+
+@InputSeries(TextSeries)
+def clean_tweets(s: TextSeries, pipeline=get_twitter_pipeline()) -> TextSeries:
+    """
+    Pre-process a text-based Pandas Series of tweets, by using the following
+    pipeline.
+
+     Twitter pipeline:
+     1. :meth:`texthero.preprocessing.fillna`
+     2. :meth:`texthero.preprocessing.replace_emojis`
+     3. :meth:`texthero.preprocessing.replace_urls`
+
+    Parameters
+    ----------
+    s : :class:`texthero._types.TextSeries`
+
+    pipeline : List[Callable[Pandas Series, Pandas Series]],
+               optional, default=None
+       Specific pipeline to clean the texts. Has to be a list
+       of functions taking as input and returning as output
+       a Pandas Series. If None, the default pipeline
+       is used.
+   
+    Examples
+    --------
+    For the default pipeline:
+
+    >>> import texthero as hero
+    >>> import pandas as pd
+    >>> s = pd.Series("the book of the jungle 😈 https://example.com")
+    >>> hero.clean_tweets(s)
+    0    the book of the jungle :smiling_face_with_horns: <URL>
+    dtype: object
+    """
+
+    if not pipeline:
+        pipeline = get_twitter_pipeline()
+
+    for f in pipeline:
+        s = s.pipe(f)
+    return s
+
+
+def get_twitter_pipeline() -> List[Callable[[pd.Series], pd.Series]]:
+    """
+    Return a list contaning all the methods used in the default cleaning
+    pipeline.
+
+    Return a list with the following functions:
+     1. :meth:`texthero.preprocessing.fillna`
+     2. :meth:`texthero.preprocessing.lowercase`
+     3. :meth:`texthero.preprocessing.remove_digits`
+     4. :meth:`texthero.preprocessing.remove_punctuation`
+     5. :meth:`texthero.preprocessing.remove_diacritics`
+     6. :meth:`texthero.preprocessing.remove_stopwords`
+     7. :meth:`texthero.preprocessing.remove_whitespace`
+    """
+    return [
+        fillna,
+        replace_emojis,
+        replace_hashtags,
+        replace_urls
+    ]
