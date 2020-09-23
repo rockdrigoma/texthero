@@ -834,7 +834,7 @@ def phrases(
 
 
 @InputSeries(TextSeries)
-def replace_urls(s: TextSeries, symbol: str) -> TextSeries:
+def replace_urls(s: TextSeries, symbol: str = None) -> TextSeries:
     r"""Replace all urls with the given symbol.
 
     Replace any urls from the given Pandas Series with the given symbol.
@@ -947,7 +947,7 @@ def remove_tags(s: TextSeries) -> TextSeries:
 
 
 @InputSeries(TextSeries)
-def replace_hashtags(s: TextSeries, symbol: str) -> TextSeries:
+def replace_hashtags(s: TextSeries, symbol: str = None) -> TextSeries:
     """Replace all hashtags from a Pandas Series with symbol
 
     A hashtag is a string formed by # concatenated with a sequence of
