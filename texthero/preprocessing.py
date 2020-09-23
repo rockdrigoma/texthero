@@ -1001,6 +1001,28 @@ def remove_hashtags(s: TextSeries) -> TextSeries:
     return replace_hashtags(s, " ")
 
 
+def get_twitter_pipeline() -> List[Callable[[pd.Series], pd.Series]]:
+    """
+    Return a list contaning all the methods used in the default cleaning
+    pipeline.
+
+    Return a list with the following functions:
+     1. :meth:`texthero.preprocessing.fillna`
+     2. :meth:`texthero.preprocessing.lowercase`
+     3. :meth:`texthero.preprocessing.remove_digits`
+     4. :meth:`texthero.preprocessing.remove_punctuation`
+     5. :meth:`texthero.preprocessing.remove_diacritics`
+     6. :meth:`texthero.preprocessing.remove_stopwords`
+     7. :meth:`texthero.preprocessing.remove_whitespace`
+    """
+    return [
+        fillna,
+        replace_emojis,
+        replace_hashtags,
+        replace_urls
+    ]
+
+
 @InputSeries(TextSeries)
 def clean_tweets(s: TextSeries, pipeline=get_twitter_pipeline()) -> TextSeries:
     """
@@ -1041,25 +1063,3 @@ def clean_tweets(s: TextSeries, pipeline=get_twitter_pipeline()) -> TextSeries:
     for f in pipeline:
         s = s.pipe(f)
     return s
-
-
-def get_twitter_pipeline() -> List[Callable[[pd.Series], pd.Series]]:
-    """
-    Return a list contaning all the methods used in the default cleaning
-    pipeline.
-
-    Return a list with the following functions:
-     1. :meth:`texthero.preprocessing.fillna`
-     2. :meth:`texthero.preprocessing.lowercase`
-     3. :meth:`texthero.preprocessing.remove_digits`
-     4. :meth:`texthero.preprocessing.remove_punctuation`
-     5. :meth:`texthero.preprocessing.remove_diacritics`
-     6. :meth:`texthero.preprocessing.remove_stopwords`
-     7. :meth:`texthero.preprocessing.remove_whitespace`
-    """
-    return [
-        fillna,
-        replace_emojis,
-        replace_hashtags,
-        replace_urls
-    ]
