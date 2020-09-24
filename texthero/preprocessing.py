@@ -19,11 +19,32 @@ from typing import List, Callable, Union
 
 import emoji
 
+import nltk
+from nltk import word_tokenize 
+from nltk.util import ngrams
+nltk.download('punkt')
+
+import pkg_resources
+from symspellpy import SymSpell, Verbosity
+
+import json
+
 # Ignore gensim annoying warnings
 import warnings
 
 warnings.filterwarnings(action="ignore", category=UserWarning, module="gensim")
 
+
+tropical_dic = json.load('tropical_dic.json')
+
+sym_spell = SymSpell(max_dictionary_edit_distance=2, prefix_length=7)
+dictionary_path = 'frequency_dictionary_es_82_765.txt'
+bigram_path = 'frequency_bigramdictionary_es_1Mnplus.txt'
+
+# term_index is the column of the term and count_index is the
+# column of the term frequency
+sym_spell.load_dictionary(dictionary_path, term_index=0, count_index=1)
+sym_spell.load_bigram_dictionary(bigram_path, term_index=0, count_index=2)
 
 @InputSeries(TextSeries)
 def fillna(s: TextSeries) -> TextSeries:
@@ -861,7 +882,7 @@ def replace_urls(s: TextSeries, symbol: str = None) -> TextSeries:
 
     """
     if symbol is None:
-        symbol = "<URL>"
+        symbol = "<100>"
 
     pattern = r"http\S+"
 
@@ -971,7 +992,7 @@ def replace_hashtags(s: TextSeries, symbol: str = None) -> TextSeries:
 
     """
     if symbol is None:
-        symbol = "<HASHTAG>"
+        symbol = "<200>"
 
     pattern = r"#[a-zA-Z0-9_]+"
     return s.str.replace(pattern, symbol)
@@ -1000,6 +1021,39 @@ def remove_hashtags(s: TextSeries) -> TextSeries:
     """
     return replace_hashtags(s, " ")
 
+def _tropical_terms_replacement(text: str) -> str:
+    #Tropical terms replacement
+    for key, val in tropical_dic.items():
+        text = text.replace(key, val)
+    return text
+
+
+def _check_spelling(text: str) -> str:
+    """
+    Check Spanish spelling of a string, replacing mispelled words and slang words in tropical_dict.json glossary
+
+    Parameters
+    ----------
+    text: str
+
+    Examples
+    --------
+    >>> from texthero.preprocessing import _check_spelling
+    >>> s = "the book of the jungle :smiling_face_with_horns:"
+    >>> _place_emojis(s)
+    'the book of the jungle 😈'
+
+    """
+    text = _tropical_terms_replacement(text)
+    suggestions = sym_spell.lookup_compound(text, max_edit_distance=2, ignore_non_words=True, transfer_casing=True)
+    best_suggestion = str(suggestions[0]).split(',')[0]
+    return best_suggestion
+
+
+@InputSeries(TextSeries)
+def check_spelling(s: TextSeries) -> TextSeries:
+    return s.apply(_check_spelling)
+
 
 def get_twitter_pipeline() -> List[Callable[[pd.Series], pd.Series]]:
     """
@@ -1008,18 +1062,18 @@ def get_twitter_pipeline() -> List[Callable[[pd.Series], pd.Series]]:
 
     Return a list with the following functions:
      1. :meth:`texthero.preprocessing.fillna`
-     2. :meth:`texthero.preprocessing.lowercase`
-     3. :meth:`texthero.preprocessing.remove_digits`
-     4. :meth:`texthero.preprocessing.remove_punctuation`
-     5. :meth:`texthero.preprocessing.remove_diacritics`
-     6. :meth:`texthero.preprocessing.remove_stopwords`
-     7. :meth:`texthero.preprocessing.remove_whitespace`
+     2. :meth:`texthero.preprocessing.replace_emojis`
+     3. :meth:`texthero.preprocessing.replace_hashtags`
+     4. :meth:`texthero.preprocessing.replace_urls`
+     5. :meth:`texthero.preprocessing.remove_whitespace`
     """
     return [
         fillna,
         replace_emojis,
         replace_hashtags,
-        replace_urls
+        replace_urls,
+        check_spelling,
+        remove_whitespace
     ]
 
 
