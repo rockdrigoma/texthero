@@ -22,7 +22,7 @@ import emoji
 import nltk
 from nltk import word_tokenize 
 from nltk.util import ngrams
-nltk.download('punkt')
+nltk.download("punkt")
 
 import pkg_resources
 from symspellpy import SymSpell, Verbosity
@@ -34,12 +34,12 @@ import warnings
 
 warnings.filterwarnings(action="ignore", category=UserWarning, module="gensim")
 
-
-tropical_dic = json.load('tropical_dic.json')
+with open("tropical_dic.json", "r") as file:
+    tropical_dic = json.load(file)
 
 sym_spell = SymSpell(max_dictionary_edit_distance=2, prefix_length=7)
-dictionary_path = 'frequency_dictionary_es_82_765.txt'
-bigram_path = 'frequency_bigramdictionary_es_1Mnplus.txt'
+dictionary_path = "frequency_dictionary_es_82_765.txt"
+bigram_path = "frequency_bigramdictionary_es_1Mnplus.txt"
 
 # term_index is the column of the term and count_index is the
 # column of the term frequency
@@ -1046,7 +1046,7 @@ def _check_spelling(text: str) -> str:
     """
     text = _tropical_terms_replacement(text)
     suggestions = sym_spell.lookup_compound(text, max_edit_distance=2, ignore_non_words=True, transfer_casing=True)
-    best_suggestion = str(suggestions[0]).split(',')[0]
+    best_suggestion = str(suggestions[0]).split(",")[0]
     return best_suggestion
 
 
