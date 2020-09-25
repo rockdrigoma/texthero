@@ -33,6 +33,8 @@ from difflib import SequenceMatcher
 from itertools import zip_longest
 import re
 
+from random import random
+
 # Ignore gensim annoying warnings
 import warnings
 
@@ -49,6 +51,10 @@ bigram_path = "frequency_bigramdictionary_es_1Mnplus.txt"
 # column of the term frequency
 sym_spell.load_dictionary(dictionary_path, term_index=0, count_index=1)
 sym_spell.load_bigram_dictionary(bigram_path, term_index=0, count_index=2)
+
+FIRST_INT = 0
+LAST_INT = 9999999999
+PLACEHOLDERS_DICT = {}
 
 @InputSeries(TextSeries)
 def fillna(s: TextSeries) -> TextSeries:
@@ -971,6 +977,27 @@ def remove_tags(s: TextSeries) -> TextSeries:
     return replace_tags(s, " ")
 
 
+def _encode_string(string: str) -> int:
+    string_bytes = string.encode()
+    return int.from_bytes(string_bytes, byteorder='big')
+
+
+def _decode_bytes(integer: int) -> str:
+    integer_bytes = integer.to_bytes(((i.bit_length() + 7) // 8), byteorder='big')
+    return integer_bytes.decode()
+
+
+def _add_hashtag_placeholder(hashtag: str) -> str:
+    if hashtag in PLACEHOLDERS_DICT:
+        return PLACEHOLDERS_DICT[hashtag]
+    else:
+        code = random.randint(FIRST_INT, LAST_INT)
+        while code in PLACEHOLDERS_DICT.values():
+            code = random.randint(FIRST_INT, LAST_INT)
+        PLACEHOLDERS_DICT[hashtag] = code
+    return code
+
+
 @InputSeries(TextSeries)
 def replace_hashtags(s: TextSeries, symbol: str = None) -> TextSeries:
     """Replace all hashtags from a Pandas Series with symbol
@@ -996,10 +1023,20 @@ def replace_hashtags(s: TextSeries, symbol: str = None) -> TextSeries:
 
     """
     if symbol is None:
-        symbol = "<200>"
+        symbol = '<200>'
 
     pattern = r"#[a-zA-Z0-9_]+"
     return s.str.replace(pattern, symbol)
+
+
+@InputSeries(TextSeries)
+def replace_hashtags_w_code(s: TextSeries) -> TextSeries:
+    copy = s.copy()
+    hashtag_pattern = r"(#[a-zA-Z0-9_]+)"
+    hashtags_found_list = copy.str.extractall(hashtag_pattern).reset_index()[0].unique()
+    for hashtag in hashtags_found_list:
+        copy.str.replace(hashtag_pattern, _add_hashtag_placeholder(hashtag), inplace=True)
+    return copy
 
 
 @InputSeries(TextSeries)
@@ -1209,7 +1246,7 @@ def _check_spelling(text: str) -> str:
     text_w_casing = text
     text_wo_casing = _tropical_terms_replacement(text)
     text = _transfer_casing_for_similar_text(text_w_casing, text_wo_casing)
-    suggestions = sym_spell.lookup_compound(text, max_edit_distance=2, ignore_non_words=True, transfer_casing=True, split_phrase_by_space=False)
+    suggestions = sym_spell.lookup_compound(text, max_edit_distance=2, ignore_non_words=False, transfer_casing=True, split_phrase_by_space=False)
     best_suggestion = str(suggestions[0])[:-6].replace(' .','.').replace(' ,',',')
     return best_suggestion
 
@@ -1234,7 +1271,7 @@ def get_twitter_pipeline() -> List[Callable[[pd.Series], pd.Series]]:
     return [
         fillna,
         replace_emojis,
-        replace_hashtags,
+        replace_hashtags_w_code,
         replace_urls,
         check_spelling,
         remove_whitespace
