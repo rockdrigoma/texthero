@@ -33,7 +33,7 @@ from difflib import SequenceMatcher
 from itertools import zip_longest
 import re
 
-from random import random
+import random
 
 # Ignore gensim annoying warnings
 import warnings
