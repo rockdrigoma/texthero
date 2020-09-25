@@ -998,6 +998,17 @@ def _add_hashtag_placeholder(hashtag: str) -> str:
     return code
 
 
+def _add_mention_placeholder(mention: str) -> str:
+    if mention in PLACEHOLDERS_DICT:
+        return PLACEHOLDERS_DICT[mention]
+    else:
+        code = random.randint(FIRST_INT, LAST_INT)
+        while code in PLACEHOLDERS_DICT.values():
+            code = random.randint(FIRST_INT, LAST_INT)
+        PLACEHOLDERS_DICT[mention] = code
+    return code
+
+
 @InputSeries(TextSeries)
 def replace_hashtags(s: TextSeries, symbol: str = None) -> TextSeries:
     """Replace all hashtags from a Pandas Series with symbol
@@ -1036,6 +1047,15 @@ def replace_hashtags_w_code(s: TextSeries) -> TextSeries:
     hashtags_found_list = copy.str.extractall(hashtag_pattern).reset_index()[0].unique()
     for hashtag in hashtags_found_list:
         copy.str.replace(hashtag_pattern, _add_hashtag_placeholder(hashtag), inplace=True)
+    return copy
+
+@InputSeries(TextSeries)
+def replace_mentions_w_code(s: TextSeries) -> TextSeries:
+    copy = s.copy()
+    mention_pattern = r"(@[a-zA-Z0-9]+)"
+    mentions_found_list = copy.str.extractall(mention_pattern).reset_index()[0].unique()
+    for mention in mentions_found_list:
+        copy.str.replace(mention_pattern, _add_mention_placeholder(mention), inplace=True)
     return copy
 
 
@@ -1272,6 +1292,7 @@ def get_twitter_pipeline() -> List[Callable[[pd.Series], pd.Series]]:
         fillna,
         replace_emojis,
         replace_hashtags_w_code,
+        replace_mentions_w_code,
         replace_urls,
         check_spelling,
         remove_whitespace
