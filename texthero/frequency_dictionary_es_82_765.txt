@@ -1754,6 +1754,7 @@ arreglo 3719773
 observa 3719060
 conclusión 3712719
 masas 3710685
+retas 3710617
 rentas 3710617
 conservación 3710448
 aquello 3709572
@@ -3289,6 +3290,7 @@ comienzos 1884789
 distinguir 1883885
 pérdidas 1883633
 peruano 1883418
+, 1882986
 seguía 1882986
 estima 1882536
 denuncia 1882169
@@ -8324,6 +8326,7 @@ pedagógica 621926
 vinculada 621802
 conciliar 621763
 rigurosa 621678
+url 621502
 burla 621502
 captación 621474
 enfrente 621464
@@ -100019,3 +100022,8 @@ jejeje 5598
 explícame 5596
 pickup 5595
 24x7 5595
+. 5594
+; 5594
+< 5594
+> 5594
+retas 5594

@@ -29,6 +29,10 @@ from symspellpy import SymSpell, Verbosity
 
 import json
 
+from difflib import SequenceMatcher
+from itertools import zip_longest
+import re
+
 # Ignore gensim annoying warnings
 import warnings
 
@@ -1021,11 +1025,169 @@ def remove_hashtags(s: TextSeries) -> TextSeries:
     """
     return replace_hashtags(s, " ")
 
+
 def _tropical_terms_replacement(text: str) -> str:
     #Tropical terms replacement
     for key, val in tropical_dic.items():
         text = text.replace(key, val)
     return text
+
+
+def _transfer_casing_for_matching_text(text_w_casing, text_wo_casing):
+    """Transferring the casing from one text to another - assuming that
+    they are 'matching' texts, alias they have the same length.
+
+    Parameters
+    ----------
+    text_w_casing : str
+        Text with varied casing
+    text_wo_casing : str
+        Text that is in lowercase only
+
+    Returns
+    -------
+    str
+        Text with the content of `text_wo_casing` and the casing of
+        `text_w_casing`
+
+    Raises
+    ------
+    ValueError
+        If the input texts have different lengths
+    """
+    if len(text_w_casing) != len(text_wo_casing):
+        raise ValueError("The 'text_w_casing' and 'text_wo_casing' "
+                         "don't have the same length, "
+                         "so you can't use them with this method, "
+                         "you should be using the more general "
+                         "transfer_casing_similar_text() method.")
+
+    return ''.join([y.upper() if x.isupper() else y.lower()
+                    for x, y in zip(text_w_casing, text_wo_casing)])
+
+
+def _transfer_casing_for_similar_text(text_w_casing, text_wo_casing):
+    """Transferring the casing from one text to another - for similar
+    (not matching) text
+
+    1. It will use `difflib`'s `SequenceMatcher` to identify the
+       different type of changes needed to turn `text_w_casing` into
+       `text_wo_casing`
+    2. For each type of change:
+
+       - for inserted sections:
+
+         - it will transfer the casing from the prior character
+         - if no character before or the character before is the\
+           space, then it will transfer the casing from the following\
+           character
+
+       - for deleted sections: no case transfer is required
+       - for equal sections: just swap out the text with the original,\
+         the one with the casings, as otherwise the two are the same
+       - replaced sections: transfer the casing using\
+         :meth:`transfer_casing_for_matching_text` if the two has the\
+         same length, otherwise transfer character-by-character and\
+         carry the last casing over to any additional characters.
+
+    Parameters
+    ----------
+    text_w_casing : str
+        Text with varied casing
+    text_wo_casing : str
+        Text that is in lowercase only
+
+    Returns
+    -------
+    text_wo_casing : str
+        If `text_wo_casing` is empty
+    c : str
+        Text with the content of `text_wo_casing` but the casing of
+        `text_w_casing`
+
+    Raises
+    ------
+    ValueError
+        If `text_w_casing` is empty
+    """
+    if not text_wo_casing:
+        return text_wo_casing
+
+    if not text_w_casing:
+        raise ValueError("We need 'text_w_casing' to know what "
+                         "casing to transfer!")
+
+    _sm = SequenceMatcher(None, text_w_casing.lower(),
+                          text_wo_casing)
+
+    # we will collect the case_text:
+    c = ''
+
+    # get the operation codes describing the differences between the
+    # two strings and handle them based on the per operation code rules
+    for tag, i1, i2, j1, j2 in _sm.get_opcodes():
+        # Print the operation codes from the SequenceMatcher:
+        # print("{:7}   a[{}:{}] --> b[{}:{}] {!r:>8} --> {!r}"
+        #       .format(tag, i1, i2, j1, j2,
+        #               text_w_casing[i1:i2],
+        #               text_wo_casing[j1:j2]))
+
+        # inserted character(s)
+        if tag == "insert":
+            # if this is the first character and so there is no
+            # character on the left of this or the left of it a space
+            # then take the casing from the following character
+            if i1 == 0 or text_w_casing[i1 - 1] == " ":
+                if text_w_casing[i1] and text_w_casing[i1].isupper():
+                    c += text_wo_casing[j1 : j2].upper()
+                else:
+                    c += text_wo_casing[j1 : j2].lower()
+            else:
+                # otherwise just take the casing from the prior
+                # character
+                if text_w_casing[i1 - 1].isupper():
+                    c += text_wo_casing[j1 : j2].upper()
+                else:
+                    c += text_wo_casing[j1 : j2].lower()
+
+        elif tag == "delete":
+            # for deleted characters we don't need to do anything
+            pass
+
+        elif tag == "equal":
+            # for 'equal' we just transfer the text from the
+            # text_w_casing, as anyhow they are equal (without the
+            # casing)
+            c += text_w_casing[i1 : i2]
+
+        elif tag == "replace":
+            _w_casing = text_w_casing[i1 : i2]
+            _wo_casing = text_wo_casing[j1 : j2]
+
+            # if they are the same length, the transfer is easy
+            if len(_w_casing) == len(_wo_casing):
+                c += _transfer_casing_for_matching_text(
+                    text_w_casing=_w_casing, text_wo_casing=_wo_casing)
+            else:
+                # if the replaced has a different length, then we
+                # transfer the casing character-by-character and using
+                # the last casing to continue if we run out of the
+                # sequence
+                _last = "lower"
+                for w, wo in zip_longest(_w_casing, _wo_casing):
+                    if w and wo:
+                        if w.isupper():
+                            c += wo.upper()
+                            _last = "upper"
+                        else:
+                            c += wo.lower()
+                            _last = "lower"
+                    elif not w and wo:
+                        # once we ran out of 'w', we will carry over
+                        # the last casing to any additional 'wo'
+                        # characters
+                        c += wo.upper() if _last == "upper" else wo.lower()
+    return c    
 
 
 def _check_spelling(text: str) -> str:
@@ -1044,9 +1206,11 @@ def _check_spelling(text: str) -> str:
     'the book of the jungle 😈'
 
     """
-    text = _tropical_terms_replacement(text)
-    suggestions = sym_spell.lookup_compound(text, max_edit_distance=2, ignore_non_words=True, transfer_casing=True)
-    best_suggestion = str(suggestions[0]).split(",")[0]
+    text_w_casing = text
+    text_wo_casing = _tropical_terms_replacement(text)
+    text = _transfer_casing_for_similar_text(text_w_casing, text_wo_casing)
+    suggestions = sym_spell.lookup_compound(item, max_edit_distance=2, ignore_non_words=True, transfer_casing=True, split_phrase_by_space=False)
+    best_suggestion = str(suggestions[0])[:-6].replace(' .','.').replace(' ,',',')
     return best_suggestion
 
 
