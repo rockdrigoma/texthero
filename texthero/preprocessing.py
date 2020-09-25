@@ -1029,7 +1029,7 @@ def remove_hashtags(s: TextSeries) -> TextSeries:
 def _tropical_terms_replacement(text: str) -> str:
     #Tropical terms replacement
     for key, val in tropical_dic.items():
-        text = text.replace(key, val)
+        text = text.lower().replace(key,val)
     return text
 
 
