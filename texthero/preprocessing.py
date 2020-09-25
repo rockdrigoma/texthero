@@ -1209,7 +1209,7 @@ def _check_spelling(text: str) -> str:
     text_w_casing = text
     text_wo_casing = _tropical_terms_replacement(text)
     text = _transfer_casing_for_similar_text(text_w_casing, text_wo_casing)
-    suggestions = sym_spell.lookup_compound(item, max_edit_distance=2, ignore_non_words=True, transfer_casing=True, split_phrase_by_space=False)
+    suggestions = sym_spell.lookup_compound(text, max_edit_distance=2, ignore_non_words=True, transfer_casing=True, split_phrase_by_space=False)
     best_suggestion = str(suggestions[0])[:-6].replace(' .','.').replace(' ,',',')
     return best_suggestion
 
