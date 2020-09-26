@@ -1307,7 +1307,7 @@ def get_twitter_pipeline() -> List[Callable[[pd.Series], pd.Series]]:
     return [
         fillna,
         replace_emojis,
-        replace_urls,
+        rreplace_urls_w_code,
         replace_hashtags_w_code,
         replace_mentions_w_code,
         check_spelling,
