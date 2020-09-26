@@ -52,7 +52,7 @@ bigram_path = "frequency_bigramdictionary_es_1Mnplus.txt"
 sym_spell.load_dictionary(dictionary_path, term_index=0, count_index=1)
 sym_spell.load_bigram_dictionary(bigram_path, term_index=0, count_index=2)
 
-FIRST_INT = 0
+FIRST_INT = 1111111111
 LAST_INT = 9999999999
 PLACEHOLDERS_DICT = {}
 
@@ -1291,9 +1291,9 @@ def get_twitter_pipeline() -> List[Callable[[pd.Series], pd.Series]]:
     return [
         fillna,
         replace_emojis,
+        replace_urls,
         replace_hashtags_w_code,
         replace_mentions_w_code,
-        replace_urls,
         check_spelling,
         remove_whitespace
     ]
