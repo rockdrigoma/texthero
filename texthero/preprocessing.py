@@ -1051,7 +1051,7 @@ def replace_hashtags_w_code(s: TextSeries) -> TextSeries:
     hashtag_pattern = r"(#[a-zA-Z0-9_]+)"
     hashtags_found_list = copy.str.extractall(hashtag_pattern).reset_index()[0].unique()
     for hashtag in hashtags_found_list:
-        copy = copy.str.replace(hashtag, str(_add_hashtag_placeholder(hashtag)))
+        copy = copy.str.replace(hashtag, str(_add_hashtag_placeholder(hashtag)), regex=False)
     return copy
 
 
@@ -1061,7 +1061,7 @@ def replace_mentions_w_code(s: TextSeries) -> TextSeries:
     mention_pattern = r"(@[a-zA-Z0-9]+)"
     mentions_found_list = copy.str.extractall(mention_pattern).reset_index()[0].unique()
     for mention in mentions_found_list:
-        copy = copy.str.replace(mention, str(_add_mention_placeholder(mention)))
+        copy = copy.str.replace(mention, str(_add_mention_placeholder(mention)), regex=False)
     return copy
 
 
@@ -1071,7 +1071,7 @@ def replace_urls_w_code(s: TextSeries) -> TextSeries:
     url_pattern = r"(http\S+)"
     urls_found_list = copy.str.extractall(url_pattern).reset_index()[0].unique()
     for url in urls_found_list:
-        copy = copy.str.replace(url, str(_add_url_placeholder(url)))
+        copy = copy.str.replace(url, str(_add_url_placeholder(url)), regex=False)
     return copy
 
 
