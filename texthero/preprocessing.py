@@ -891,9 +891,6 @@ def replace_urls(s: TextSeries, symbol: str = None) -> TextSeries:
     :meth:`texthero.preprocessing.remove_urls`
 
     """
-    if symbol is None:
-        symbol = "<100>"
-
     pattern = r"http\S+"
 
     return s.str.replace(pattern, symbol)
@@ -987,6 +984,17 @@ def _decode_bytes(integer: int) -> str:
     return integer_bytes.decode()
 
 
+def _add_url_placeholder(url: str) -> str:
+    if url in PLACEHOLDERS_DICT:
+        return PLACEHOLDERS_DICT[url]
+    else:
+        code = random.randint(FIRST_INT, LAST_INT)
+        while code in PLACEHOLDERS_DICT.values():
+            code = random.randint(FIRST_INT, LAST_INT)
+        PLACEHOLDERS_DICT[url] = code
+    return code
+
+
 def _add_hashtag_placeholder(hashtag: str) -> str:
     if hashtag in PLACEHOLDERS_DICT:
         return PLACEHOLDERS_DICT[hashtag]
@@ -1033,9 +1041,6 @@ def replace_hashtags(s: TextSeries, symbol: str = None) -> TextSeries:
     dtype: object
 
     """
-    if symbol is None:
-        symbol = '<200>'
-
     pattern = r"#[a-zA-Z0-9_]+"
     return s.str.replace(pattern, symbol)
 
@@ -1049,6 +1054,7 @@ def replace_hashtags_w_code(s: TextSeries) -> TextSeries:
         copy = copy.str.replace(hashtag, str(_add_hashtag_placeholder(hashtag)))
     return copy
 
+
 @InputSeries(TextSeries)
 def replace_mentions_w_code(s: TextSeries) -> TextSeries:
     copy = s.copy()
@@ -1056,6 +1062,16 @@ def replace_mentions_w_code(s: TextSeries) -> TextSeries:
     mentions_found_list = copy.str.extractall(mention_pattern).reset_index()[0].unique()
     for mention in mentions_found_list:
         copy = copy.str.replace(mention, str(_add_mention_placeholder(mention)))
+    return copy
+
+
+@InputSeries(TextSeries)
+def replace_urls_w_code(s: TextSeries) -> TextSeries:
+    copy = s.copy()
+    url_pattern = r"(http\S+)"
+    urls_found_list = copy.str.extractall(url_pattern).reset_index()[0].unique()
+    for url in urls_found_list:
+        copy = copy.str.replace(url, str(_add_url_placeholder(url)))
     return copy
 
 
