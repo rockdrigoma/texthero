@@ -19,11 +19,6 @@ from typing import List, Callable, Union
 
 import emoji
 
-import nltk
-from nltk import word_tokenize 
-from nltk.util import ngrams
-nltk.download("punkt")
-
 import pkg_resources
 from symspellpy import SymSpell, Verbosity
 
@@ -38,23 +33,32 @@ import random
 # Ignore gensim annoying warnings
 import warnings
 
+import nltk
+from nltk import word_tokenize
+from nltk.util import ngrams
+nltk.download("punkt")
+
 warnings.filterwarnings(action="ignore", category=UserWarning, module="gensim")
 
-with open("tropical_dic.json", "r") as file:
+TROPICAL_PATH = "tropical_dic.json"
+FREQ_DICT_PATH = "frequency_dictionary_es_82_765.txt"
+BIGRAM_PATH = "frequency_bigramdictionary_es_1Mnplus.txt"
+
+with open(TROPICAL_PATH, "r") as file:
     tropical_dic = json.load(file)
 
 sym_spell = SymSpell(max_dictionary_edit_distance=2, prefix_length=7)
-dictionary_path = "frequency_dictionary_es_82_765.txt"
-bigram_path = "frequency_bigramdictionary_es_1Mnplus.txt"
 
 # term_index is the column of the term and count_index is the
 # column of the term frequency
-sym_spell.load_dictionary(dictionary_path, term_index=0, count_index=1)
-sym_spell.load_bigram_dictionary(bigram_path, term_index=0, count_index=2)
+sym_spell.load_dictionary(FREQ_DICT_PATH, term_index=0, count_index=1)
+sym_spell.load_bigram_dictionary(BIGRAM_PATH, term_index=0, count_index=2)
 
-FIRST_INT = 1111111111
-LAST_INT = 9999999999
+FIRST_INT = 11111111111111
+LAST_INT = 99999999999999
+
 PLACEHOLDERS_DICT = {}
+
 
 @InputSeries(TextSeries)
 def fillna(s: TextSeries) -> TextSeries:
@@ -69,8 +73,8 @@ def fillna(s: TextSeries) -> TextSeries:
     >>> s = pd.Series(["I'm", np.NaN, pd.NA, "You're"])
     >>> hero.fillna(s)
     0       I'm
-    1          
-    2          
+    1
+    2
     3    You're
     dtype: object
     """
@@ -82,7 +86,7 @@ def lowercase(s: TextSeries) -> TextSeries:
     """
     Lowercase all texts in a series.
 
-    
+
     Examples
     --------
     >>> import texthero as hero
@@ -92,7 +96,160 @@ def lowercase(s: TextSeries) -> TextSeries:
     0    this is new york with upper letters
     dtype: object
     """
+
     return s.str.lower()
+
+
+def _count_uppercase(string: str) -> int:
+    """
+    Count number of uppercase letter in a string.
+
+
+    Examples
+    --------
+    >>> import texthero as hero
+    >>> import pandas as pd
+    >>> string = "This is NeW YoRk wIth upPer letters")
+    >>> hero._count_uppercase(string)
+    7
+    dtype: int
+    """
+    count = sum(1 for char in string if char.isupper())
+    return count
+
+
+@InputSeries(TextSeries)
+def count_uppercase(s: TextSeries) -> TextSeries:
+    """
+    Lowercase all texts in a series.
+
+
+    Examples
+    --------
+    >>> import texthero as hero
+    >>> import pandas as pd
+    >>> s = pd.Series("This is NeW YoRk wIth upPer letters")
+    >>> hero.count_uppercase(s)
+    0    5
+    dtype: object
+    """
+    return s.apply(_count_uppercase)
+
+
+def _count_whitespaces(string: str) -> int:
+    """
+    Count number of whitespaces in a string.
+
+
+    Examples
+    --------
+    >>> import texthero as hero
+    >>> import pandas as pd
+    >>> string = "This is NeW YoRk wIth upPer letters")
+    >>> hero._count_whitespaces(string)
+    6
+    dtype: int
+    """
+    count = sum(1 for char in string if char == " ")
+    return count
+
+
+def count_whitespaces(s: TextSeries) -> TextSeries:
+    """
+    Count number of whitespaces in a string.
+
+
+    Examples
+    --------
+    >>> import texthero as hero
+    >>> import pandas as pd
+    >>> s = pd.Series("This is NeW YoRk wIth upPer letters")
+    >>> hero.count_whitespaces(s)
+    0    6
+    dtype: object
+    """
+    return s.apply(_count_whitespaces)
+
+
+def _too_many_uppercase(string: str) -> bool:
+    """
+    Says whether a string has too many uppercase characters.
+
+
+    Examples
+    --------
+    >>> import texthero as hero
+    >>> import pandas as pd
+    >>> string = "This is NeW YoRk wIth upPer letters")
+    >>> hero._too_many_uppercase(string)
+    True
+    dtype: int
+    """
+
+    too_many_uppercase = False
+
+    count_uppercase = _count_uppercase(string)
+    count_whitespaces = _count_whitespaces(string)
+
+    if count_uppercase > count_whitespaces + 1:
+        too_many_uppercase = True
+
+    return too_many_uppercase
+
+
+def too_many_uppercase(s: TextSeries) -> TextSeries:
+    """
+    Says whether a string has too many uppercase characters.
+
+
+    Examples
+    --------
+    >>> import texthero as hero
+    >>> import pandas as pd
+    >>> s = pd.Series("This is NeW YoRk wIth upPer leTTers")
+    >>> hero.too_many_uppercase(s)
+    0    True
+    dtype: object
+    """
+    return s.apply(_too_many_uppercase)
+
+
+def _lowercase_restricted(string: str) -> str:
+    """
+    Lowercase text in string except for those with too many uppercase chars.
+
+
+    Examples
+    --------
+    >>> import texthero as hero
+    >>> import pandas as pd
+    >>> s = "This is NeW YoRk wIth upPer leTTers"
+    >>> hero._lowercase_restricted(s)
+    "this is new york with upper letters"
+    dtype: str
+    """
+    if _too_many_uppercase(string):
+        return string.lower()
+    return string
+
+
+@InputSeries(TextSeries)
+def lowercase_restricted(s: TextSeries) -> TextSeries:
+    """
+    Lowercase all texts in a series except for those with too many uppercase chars.
+
+
+    Examples
+    --------
+    >>> import texthero as hero
+    >>> import pandas as pd
+    >>> s = pd.Series("This is NeW YoRk wIth upPer leTTers")
+    >>> hero.lowercase_restricted(s)
+    0    this is new york with upper letters
+    dtype: object
+    """
+
+    return s.apply(_lowercase_restricted)
 
 
 @InputSeries(TextSeries)
@@ -160,10 +317,10 @@ def remove_digits(s: TextSeries, only_blocks=True) -> TextSeries:
     >>> import pandas as pd
     >>> s = pd.Series("7ex7hero is fun 1111")
     >>> hero.preprocessing.remove_digits(s)
-    0    7ex7hero is fun  
+    0    7ex7hero is fun
     dtype: object
     >>> hero.preprocessing.remove_digits(s, only_blocks=False)
-    0     ex hero is fun  
+    0     ex hero is fun
     dtype: object
     """
 
@@ -176,8 +333,8 @@ def replace_punctuation(s: TextSeries, symbol: str = " ") -> TextSeries:
     Replace all punctuation with a given symbol.
 
     Replace all punctuation from the given
-    Pandas Series with a custom symbol. 
-    It considers as punctuation characters all :data:`string.punctuation` 
+    Pandas Series with a custom symbol.
+    It considers as punctuation characters all :data:`string.punctuation`
     symbols `!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~).`
 
 
@@ -186,7 +343,7 @@ def replace_punctuation(s: TextSeries, symbol: str = " ") -> TextSeries:
     s : :class:`texthero._types.TextSeries`
 
     symbol : str, optional, default=" "
-        Symbol to use as replacement for all string punctuation. 
+        Symbol to use as replacement for all string punctuation.
 
     Examples
     --------
@@ -194,7 +351,7 @@ def replace_punctuation(s: TextSeries, symbol: str = " ") -> TextSeries:
     >>> import pandas as pd
     >>> s = pd.Series("Finnaly.")
     >>> hero.replace_punctuation(s, " <PUNCT> ")
-    0    Finnaly <PUNCT> 
+    0    Finnaly <PUNCT>
     dtype: object
     """
 
@@ -219,7 +376,7 @@ def remove_punctuation(s: TextSeries) -> TextSeries:
     >>> import pandas as pd
     >>> s = pd.Series("Finnaly.")
     >>> hero.remove_punctuation(s)
-    0    Finnaly 
+    0    Finnaly
     dtype: object
     """
     return replace_punctuation(s, " ")
@@ -315,9 +472,9 @@ def _replace_stopwords(text: str, words: Set[str], symbol: str = " ") -> str:
     """
 
     pattern = r"""(?x)                          # Set flag to allow verbose regexps
-      \w+(?:-\w+)*                              # Words with optional internal hyphens 
+      \w+(?:-\w+)*                              # Words with optional internal hyphens
       | \s*                                     # Any space
-      | [][!"#$%&'*+,-./:;<=>?@\\^():_`{|}~]    # Any symbol 
+      | [][!"#$%&'*+,-./:;<=>?@\\^():_`{|}~]    # Any symbol
     """
 
     return "".join(t if t not in words else symbol for t in re.findall(pattern, text))
@@ -341,7 +498,7 @@ def replace_stopwords(
 
     stopwords : Set[str], optional, default=None
         Set of stopwords string to remove. If not passed,
-        by default uses NLTK English stopwords. 
+        by default uses NLTK English stopwords.
 
     Examples
     --------
@@ -397,7 +554,7 @@ def remove_stopwords(
     >>> custom_stopwords = default_stopwords.union(set(["heroes"]))
     >>> s = pd.Series("Texthero is not only for the heroes")
     >>> hero.remove_stopwords(s, custom_stopwords)
-    0    Texthero      
+    0    Texthero
     dtype: object
 
 
@@ -541,7 +698,7 @@ def clean(s: TextSeries, pipeline=None) -> TextSeries:
        of functions taking as input and returning as output
        a Pandas Series. If None, the default pipeline
        is used.
-   
+
     Examples
     --------
     For the default pipeline:
@@ -616,7 +773,7 @@ def remove_round_brackets(s: TextSeries) -> TextSeries:
     >>> import pandas as pd
     >>> s = pd.Series("Texthero (is not a superhero!)")
     >>> hero.remove_round_brackets(s)
-    0    Texthero 
+    0    Texthero
     dtype: object
 
     See also
@@ -642,7 +799,7 @@ def remove_curly_brackets(s: TextSeries) -> TextSeries:
     >>> import pandas as pd
     >>> s = pd.Series("Texthero {is not a superhero!}")
     >>> hero.remove_curly_brackets(s)
-    0    Texthero 
+    0    Texthero
     dtype: object
 
     See also
@@ -668,7 +825,7 @@ def remove_square_brackets(s: TextSeries) -> TextSeries:
     >>> import pandas as pd
     >>> s = pd.Series("Texthero [is not a superhero!]")
     >>> hero.remove_square_brackets(s)
-    0    Texthero 
+    0    Texthero
     dtype: object
 
     See also
@@ -695,7 +852,7 @@ def remove_angle_brackets(s: TextSeries) -> TextSeries:
     >>> import pandas as pd
     >>> s = pd.Series("Texthero <is not a superhero!>")
     >>> hero.remove_angle_brackets(s)
-    0    Texthero 
+    0    Texthero
     dtype: object
 
     See also
@@ -722,7 +879,7 @@ def remove_brackets(s: TextSeries) -> TextSeries:
     >>> import pandas as pd
     >>> s = pd.Series("Texthero (round) [square] [curly] [angle]")
     >>> hero.remove_brackets(s)
-    0    Texthero    
+    0    Texthero
     dtype: object
 
     See also
@@ -825,13 +982,13 @@ def phrases(
     Parameters
     ----------
     s : :class:`texthero._types.TokenSeries`
-    
+
     min_count : int, optional, default=5
         Ignore tokens with frequency less than this.
-        
+
     threshold : int, optional, default=10
         Ignore tokens with a score under that threshold.
-        
+
     symbol : str, optional, default="_"
         Character used to join collocation words.
 
@@ -908,7 +1065,7 @@ def remove_urls(s: TextSeries) -> TextSeries:
     >>> import pandas as pd
     >>> s = pd.Series("Go to: https://example.com")
     >>> hero.remove_urls(s)
-    0    Go to:  
+    0    Go to:
     dtype: object
 
     See also
@@ -974,23 +1131,13 @@ def remove_tags(s: TextSeries) -> TextSeries:
     return replace_tags(s, " ")
 
 
-def _encode_string(string: str) -> int:
-    string_bytes = string.encode()
-    return int.from_bytes(string_bytes, byteorder='big')
-
-
-def _decode_bytes(integer: int) -> str:
-    integer_bytes = integer.to_bytes(((i.bit_length() + 7) // 8), byteorder='big')
-    return integer_bytes.decode()
-
-
 def _add_url_placeholder(url: str) -> str:
     if url in PLACEHOLDERS_DICT:
         return PLACEHOLDERS_DICT[url]
     else:
         code = random.randint(FIRST_INT, LAST_INT)
         while code in PLACEHOLDERS_DICT.values():
-            code = random.randint(FIRST_INT, LAST_INT)
+            code = str(random.randint(FIRST_INT, LAST_INT))
         PLACEHOLDERS_DICT[url] = code
     return code
 
@@ -1001,7 +1148,7 @@ def _add_hashtag_placeholder(hashtag: str) -> str:
     else:
         code = random.randint(FIRST_INT, LAST_INT)
         while code in PLACEHOLDERS_DICT.values():
-            code = random.randint(FIRST_INT, LAST_INT)
+            code = str(random.randint(FIRST_INT, LAST_INT))
         PLACEHOLDERS_DICT[hashtag] = code
     return code
 
@@ -1012,7 +1159,7 @@ def _add_mention_placeholder(mention: str) -> str:
     else:
         code = random.randint(FIRST_INT, LAST_INT)
         while code in PLACEHOLDERS_DICT.values():
-            code = random.randint(FIRST_INT, LAST_INT)
+            code = str(random.randint(FIRST_INT, LAST_INT))
         PLACEHOLDERS_DICT[mention] = code
     return code
 
@@ -1022,7 +1169,7 @@ def replace_hashtags(s: TextSeries, symbol: str = None) -> TextSeries:
     """Replace all hashtags from a Pandas Series with symbol
 
     A hashtag is a string formed by # concatenated with a sequence of
-    characters, digits and underscores. Example: #texthero_123. 
+    characters, digits and underscores. Example: #texthero_123.
 
     Parameters
     ----------
@@ -1030,7 +1177,7 @@ def replace_hashtags(s: TextSeries, symbol: str = None) -> TextSeries:
 
     symbol : str
         Symbol to replace hashtags with.
-    
+
     Examples
     --------
     >>> import texthero as hero
@@ -1046,33 +1193,37 @@ def replace_hashtags(s: TextSeries, symbol: str = None) -> TextSeries:
 
 
 @InputSeries(TextSeries)
-def replace_hashtags_w_code(s: TextSeries) -> TextSeries:
+def replace_hashtags_w_placeholder(s: TextSeries) -> TextSeries:
     copy = s.copy()
     hashtag_pattern = r"(#[a-zA-Z0-9_]+)"
     hashtags_found_list = copy.str.extractall(hashtag_pattern).reset_index()[0].unique()
     for hashtag in hashtags_found_list:
-        copy = copy.str.replace(hashtag, str(_add_hashtag_placeholder(hashtag)), regex=False)
+        copy = copy.str.replace(hashtag, _add_hashtag_placeholder(hashtag), regex=False)
     return copy
 
 
 @InputSeries(TextSeries)
-def replace_mentions_w_code(s: TextSeries) -> TextSeries:
+def replace_mentions_w_placeholder(s: TextSeries) -> TextSeries:
     copy = s.copy()
     mention_pattern = r"(@[a-zA-Z0-9]+)"
     mentions_found_list = copy.str.extractall(mention_pattern).reset_index()[0].unique()
     for mention in mentions_found_list:
-        copy = copy.str.replace(mention, str(_add_mention_placeholder(mention)), regex=False)
+        copy = copy.str.replace(mention, _add_mention_placeholder(mention), regex=False)
     return copy
 
 
 @InputSeries(TextSeries)
-def replace_urls_w_code(s: TextSeries) -> TextSeries:
+def replace_urls_w_placeholder(s: TextSeries) -> TextSeries:
     copy = s.copy()
     url_pattern = r"(http\S+)"
     urls_found_list = copy.str.extractall(url_pattern).reset_index()[0].unique()
     for url in urls_found_list:
-        copy = copy.str.replace(url, str(_add_url_placeholder(url)), regex=False)
+        copy = copy.str.replace(url, _add_url_placeholder(url), regex=False)
     return copy
+
+
+def get_placeholder_dictionary() -> dict:
+    return PLACEHOLDERS_DICT
 
 
 @InputSeries(TextSeries)
@@ -1080,7 +1231,7 @@ def remove_hashtags(s: TextSeries) -> TextSeries:
     """Remove all hashtags from a given Pandas Series
 
     A hashtag is a string formed by # concatenated with a sequence of
-    characters, digits and underscores. Example: #texthero_123. 
+    characters, digits and underscores. Example: #texthero_123.
 
     Examples
     --------
@@ -1100,9 +1251,9 @@ def remove_hashtags(s: TextSeries) -> TextSeries:
 
 
 def _tropical_terms_replacement(text: str) -> str:
-    #Tropical terms replacement
+    text = re.sub(r'[.,*\^]+(?![ ])', r'', text)
     for key, val in tropical_dic.items():
-        text = text.lower().replace(key,val)
+        text = text.lower().replace(key, val)
     return text
 
 
@@ -1212,16 +1363,16 @@ def _transfer_casing_for_similar_text(text_w_casing, text_wo_casing):
             # then take the casing from the following character
             if i1 == 0 or text_w_casing[i1 - 1] == " ":
                 if text_w_casing[i1] and text_w_casing[i1].isupper():
-                    c += text_wo_casing[j1 : j2].upper()
+                    c += text_wo_casing[j1:j2].upper()
                 else:
-                    c += text_wo_casing[j1 : j2].lower()
+                    c += text_wo_casing[j1:j2].lower()
             else:
                 # otherwise just take the casing from the prior
                 # character
                 if text_w_casing[i1 - 1].isupper():
-                    c += text_wo_casing[j1 : j2].upper()
+                    c += text_wo_casing[j1:j2].upper()
                 else:
-                    c += text_wo_casing[j1 : j2].lower()
+                    c += text_wo_casing[j1:j2].lower()
 
         elif tag == "delete":
             # for deleted characters we don't need to do anything
@@ -1231,11 +1382,11 @@ def _transfer_casing_for_similar_text(text_w_casing, text_wo_casing):
             # for 'equal' we just transfer the text from the
             # text_w_casing, as anyhow they are equal (without the
             # casing)
-            c += text_w_casing[i1 : i2]
+            c += text_w_casing[i1:i2]
 
         elif tag == "replace":
-            _w_casing = text_w_casing[i1 : i2]
-            _wo_casing = text_wo_casing[j1 : j2]
+            _w_casing = text_w_casing[i1:i2]
+            _wo_casing = text_wo_casing[j1:j2]
 
             # if they are the same length, the transfer is easy
             if len(_w_casing) == len(_wo_casing):
@@ -1260,12 +1411,13 @@ def _transfer_casing_for_similar_text(text_w_casing, text_wo_casing):
                         # the last casing to any additional 'wo'
                         # characters
                         c += wo.upper() if _last == "upper" else wo.lower()
-    return c    
+    return c
 
 
 def _check_spelling(text: str) -> str:
     """
-    Check Spanish spelling of a string, replacing mispelled words and slang words in tropical_dict.json glossary
+    Check Spanish spelling of a string, replacing mispelled words and
+    slang words in tropical_dict.json glossary
 
     Parameters
     ----------
@@ -1282,8 +1434,15 @@ def _check_spelling(text: str) -> str:
     text_w_casing = text
     text_wo_casing = _tropical_terms_replacement(text)
     text = _transfer_casing_for_similar_text(text_w_casing, text_wo_casing)
-    suggestions = sym_spell.lookup_compound(text, max_edit_distance=2, ignore_non_words=False, transfer_casing=True, split_phrase_by_space=False)
-    best_suggestion = str(suggestions[0])[:-6].replace(' .','.').replace(' ,',',')
+    suggestions = sym_spell.lookup_compound(
+        text,
+        max_edit_distance=2,
+        ignore_non_words=True,
+        transfer_casing=True,
+        split_phrase_by_space=False,
+        ignore_term_with_digits=True
+    )
+    best_suggestion = str(suggestions[0])[:-6].replace(' .', '.').replace(' ,', ',')
     return best_suggestion
 
 
@@ -1292,31 +1451,69 @@ def check_spelling(s: TextSeries) -> TextSeries:
     return s.apply(_check_spelling)
 
 
-def get_twitter_pipeline() -> List[Callable[[pd.Series], pd.Series]]:
+def _invert_sort_placeholders_dict():
+    inv_dict = {v: k for k, v in PLACEHOLDERS_DICT.items()}
+    sorted_dict = {k: v for k, v in sorted(inv_dict.items(), key=lambda item: item[1], reverse=True)}
+    return sorted_dict
+
+
+def _replace_placeholders(s: string) -> str:
+    sorted_dict = _invert_sort_placeholders_dict()
+    for key in sorted_dict:
+        string = string.replace(key, sorted_dict[key], regex)
+    return string
+
+
+@InputSeries(TextSeries)
+def replace_placeholders(s: TextSeries) -> TextSeries:
+    sorted_dict = _invert_sort_placeholders_dict()
+    for key in sorted_dict:
+        s = s.str.replace(key, sorted_dict[key], regex=False)
+    return s
+
+
+def get_twitter_pre_pipeline() -> List[Callable[[pd.Series], pd.Series]]:
     """
     Return a list contaning all the methods used in the default cleaning
     pipeline.
 
     Return a list with the following functions:
      1. :meth:`texthero.preprocessing.fillna`
-     2. :meth:`texthero.preprocessing.replace_emojis`
-     3. :meth:`texthero.preprocessing.replace_hashtags`
-     4. :meth:`texthero.preprocessing.replace_urls`
-     5. :meth:`texthero.preprocessing.remove_whitespace`
+     2. :meth:`texthero.preprocessing.replace_urls_w_placeholder
+     3. :meth:`texthero.preprocessing.replace_hashtags_w_placeholder`
+     4. :meth:`texthero.preprocessing.replace_mentions_w_placeholder`
+     5. :meth:`texthero.preprocessing.check_spelling`
+     6. :meth:`texthero.preprocessing.remove_whitespace`
     """
     return [
         fillna,
         replace_emojis,
-        replace_urls_w_code,
-        replace_hashtags_w_code,
-        replace_mentions_w_code,
+        replace_urls_w_placeholder,
+        replace_hashtags_w_placeholder,
+        replace_mentions_w_placeholder,
+        lowercase_restricted,
         check_spelling,
         remove_whitespace
     ]
 
 
+def get_twitter_post_pipeline() -> List[Callable[[pd.Series], pd.Series]]:
+    """
+    Return a list contaning all the methods used in the default cleaning
+    pipeline.
+
+    Return a list with the following functions:
+     1. :meth:`texthero.preprocessing.replace_placeholders`
+     2. :meth:`texthero.preprocessing.place_emojis`
+    """
+    return [
+        replace_placeholders,
+        place_emojis
+    ]
+
+
 @InputSeries(TextSeries)
-def clean_tweets(s: TextSeries, pipeline=get_twitter_pipeline()) -> TextSeries:
+def clean_tweets(s: TextSeries, pipeline=get_twitter_pre_pipeline()) -> TextSeries:
     """
     Pre-process a text-based Pandas Series of tweets, by using the following
     pipeline.
@@ -1336,7 +1533,7 @@ def clean_tweets(s: TextSeries, pipeline=get_twitter_pipeline()) -> TextSeries:
        of functions taking as input and returning as output
        a Pandas Series. If None, the default pipeline
        is used.
-   
+
     Examples
     --------
     For the default pipeline:
@@ -1351,6 +1548,48 @@ def clean_tweets(s: TextSeries, pipeline=get_twitter_pipeline()) -> TextSeries:
 
     if not pipeline:
         pipeline = get_twitter_pipeline()
+
+    for f in pipeline:
+        s = s.pipe(f)
+    return s
+
+
+@InputSeries(TextSeries)
+def restore_tweets(s: TextSeries, pipeline=get_twitter_post_pipeline()) -> TextSeries:
+    """
+    Pre-process a text-based Pandas Series of tweets, by using the following
+    pipeline.
+
+     Twitter pipeline:
+     1. :meth:`texthero.preprocessing.fillna`
+     2. :meth:`texthero.preprocessing.replace_emojis`
+     3. :meth:`texthero.preprocessing.replace_urls`
+
+    Parameters
+    ----------
+    s : :class:`texthero._types.TextSeries`
+
+    pipeline : List[Callable[Pandas Series, Pandas Series]],
+               optional, default=None
+       Specific pipeline to clean the texts. Has to be a list
+       of functions taking as input and returning as output
+       a Pandas Series. If None, the default pipeline
+       is used.
+
+    Examples
+    --------
+    For the default pipeline:
+
+    >>> import texthero as hero
+    >>> import pandas as pd
+    >>> s = pd.Series("the book of the jungle 😈 https://example.com")
+    >>> hero.clean_tweets(s)
+    0    the book of the jungle :smiling_face_with_horns: <URL>
+    dtype: object
+    """
+
+    if not pipeline:
+        pipeline = get_twitter_post_pipeline()
 
     for f in pipeline:
         s = s.pipe(f)
