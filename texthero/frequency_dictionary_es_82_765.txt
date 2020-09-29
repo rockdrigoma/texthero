@@ -28,6 +28,7 @@ ha 146483629
 sobre 145130687
 pero 140682505
 esta 138931452
+están 138931451
 si 130264550
 sin 130261180
 le 128551741
@@ -90,6 +91,7 @@ caso 47380481
 cual 47110282
 pues 46731635
 gran 46265782
+bran 46265781
 ese 46231027
 sido 45907461
 trabajo 45243341
@@ -2766,6 +2768,7 @@ suficientes 2269089
 armadas 2268781
 argumentos 2268248
 comida 2267713
+cómoda 2267712
 identificación 2264620
 ordinario 2264247
 parlamento 2263010
@@ -4305,6 +4308,7 @@ viejas 1407387
 permanentes 1406532
 diligencia 1406141
 perdió 1406029
+perdí 1406028
 gráfica 1405014
 convocatoria 1404870
 metales 1404086
@@ -8074,6 +8078,7 @@ tortura 648986
 descansar 648985
 profesora 648973
 regir 648824
+reír 648823
 terminal 648760
 tramitación 648468
 obligar 648455
@@ -20997,6 +21002,7 @@ triángulos 158922
 convenida 158915
 expropiaciones 158912
 siles 158912
+sigues 158911
 dudosos 158906
 durado 158875
 singapur 158872
@@ -29970,6 +29976,7 @@ desplegando 87316
 llevábamos 87314
 prestatarios 87313
 infelicidad 87294
+pirir 87268
 parir 87268
 tamiz 87266
 drago 87259
@@ -77901,7 +77908,6 @@ reservativo 11312
 interbancarios 11309
 bies 11308
 candorosas 11308
-seras 11308
 diftérico 11306
 gruñón 11306
 derrocando 11305
@@ -100027,3 +100033,20 @@ pickup 5595
 < 5594
 > 5594
 retas 5594
+aguantarías 5594
+? 5594
+¿ 5594
+! 5594
+¡ 5594
+peleemos 5594
+mack 5594
+helen 5594
+inventándose 5594
+sisaña 5594
+arriaga 5594
+así 5594
+ardiditos 5594
+cc 5594
+Curruchich 5594
+Mirna 5594
+fct 5594
