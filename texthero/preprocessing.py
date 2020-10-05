@@ -1135,7 +1135,7 @@ def _add_url_placeholder(url: str) -> str:
     if url in PLACEHOLDERS_DICT:
         return PLACEHOLDERS_DICT[url]
     else:
-        code = random.randint(FIRST_INT, LAST_INT)
+        code = str(random.randint(FIRST_INT, LAST_INT))
         while code in PLACEHOLDERS_DICT.values():
             code = str(random.randint(FIRST_INT, LAST_INT))
         PLACEHOLDERS_DICT[url] = code
@@ -1146,7 +1146,7 @@ def _add_hashtag_placeholder(hashtag: str) -> str:
     if hashtag in PLACEHOLDERS_DICT:
         return PLACEHOLDERS_DICT[hashtag]
     else:
-        code = random.randint(FIRST_INT, LAST_INT)
+        code = str(random.randint(FIRST_INT, LAST_INT))
         while code in PLACEHOLDERS_DICT.values():
             code = str(random.randint(FIRST_INT, LAST_INT))
         PLACEHOLDERS_DICT[hashtag] = code
@@ -1157,7 +1157,7 @@ def _add_mention_placeholder(mention: str) -> str:
     if mention in PLACEHOLDERS_DICT:
         return PLACEHOLDERS_DICT[mention]
     else:
-        code = random.randint(FIRST_INT, LAST_INT)
+        code = str(random.randint(FIRST_INT, LAST_INT))
         while code in PLACEHOLDERS_DICT.values():
             code = str(random.randint(FIRST_INT, LAST_INT))
         PLACEHOLDERS_DICT[mention] = code
