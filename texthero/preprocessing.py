@@ -1453,14 +1453,14 @@ def check_spelling(s: TextSeries) -> TextSeries:
 
 def _invert_sort_placeholders_dict():
     inv_dict = {v: k for k, v in PLACEHOLDERS_DICT.items()}
-    sorted_dict = {k: v for k, v in sorted(inv_dict.items(), key=lambda item: item[1], reverse=True)}
+    sorted_dict = {k: v for k, v in sorted(subs_dict.items(), key=lambda item: len(item[1]), reverse=True)}
     return sorted_dict
 
 
 def _replace_placeholders(s: string) -> str:
     sorted_dict = _invert_sort_placeholders_dict()
     for key in sorted_dict:
-        string = string.replace(key, sorted_dict[key], regex)
+        string = string.replace(key, sorted_dict[key], regex=False)
     return string
 
 
